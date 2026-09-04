@@ -38,7 +38,7 @@ jobs:
 
       - name: Terraform Init
         run: |
-          terraform init \
+          terraform init -migrate-state \
             -backend-config="resource_group_name=${{ vars.BACKEND_RESOURCE_GROUP }}" \
             -backend-config="storage_account_name=${{ vars.BACKEND_STORAGE_ACCOUNT }}" \
             -backend-config="container_name=tfstate" \
