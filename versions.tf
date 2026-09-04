@@ -9,13 +9,11 @@ terraform {
   }
 
   backend "azurerm" {
-    container_name        = "tfstate"
-    key                   = "prod.terraform.tfstate"
-    use_azuread_auth      = true
+    container_name = "tfstate"
+    key            = "prod.terraform.tfstate"
   }
 }
 
 provider "azurerm" {
   features {}
-  use_oidc = true
 }
