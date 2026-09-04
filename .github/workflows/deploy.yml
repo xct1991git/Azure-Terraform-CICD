@@ -1,0 +1,56 @@
+name: "Terraform Azure CI/CD"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # Necesario para solicitar el token OIDC a Entra ID
+  contents: read    # Necesario para clonar el repositorio
+
+jobs:
+  terraform:
+    name: "Terraform Plan & Apply"
+    runs-on: ubuntu-latest
+
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_USE_OIDC: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ vars.BACKEND_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ vars.BACKEND_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=prod.terraform.tfstate"
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -out=tfplan
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        run: terraform apply -auto-approve tfplan
